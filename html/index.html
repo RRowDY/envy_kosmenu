@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envy RP - KOS Menu</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Notification System -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <div id="kos-menu-container" class="menu-container hidden">
+        <div class="menu-backdrop"></div>
+        <div class="menu-wrapper">
+            <div class="menu-header">
+                <div class="header-content">
+                    <div class="logo-section">
+                        <div class="logo-icon"></div>
+                        <div class="title-section">
+                            <h1 class="menu-title">Envy Roleplay</h1>
+                            <h2 class="menu-subtitle">KOS Management</h2>
+                        </div>
+                    </div>
+                </div>
+                <button class="close-button" id="close-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="menu-content">
+                <div class="menu-buttons" id="menu-buttons">
+                    <!-- Leave Bucket Button (Always visible, disabled if in bucket 0) -->
+                    <button class="menu-button" id="leave-bucket-btn" data-action="leaveBucket">
+                        <div class="button-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="button-content">
+                            <span class="button-title">Leave Your Bucket</span>
+                            <span class="button-description">Return to the main dimension</span>
+                        </div>
+                    </button>
+
+                    <!-- Admin Buttons (Only visible with permissions) -->
+                    <div class="admin-section hidden" id="admin-section">
+                        <div class="section-divider">
+                            <span>Admin Options</span>
+                        </div>
+
+                        <!-- Create Bucket Button -->
+                        <button class="menu-button" id="create-bucket-btn" data-action="createBucket">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 8V16M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Create Bucket</span>
+                                <span class="button-description">Create a new dimension at your current location</span>
+                            </div>
+                        </button>
+
+                        <!-- Delete Bucket Button -->
+                        <button class="menu-button" id="delete-bucket-btn" data-action="deleteBucket">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Delete Bucket</span>
+                                <span class="button-description">Delete a dimension and move all players to main</span>
+                            </div>
+                        </button>
+
+                        <!-- Teleport to Bucket Button -->
+                        <button class="menu-button" id="teleport-bucket-btn" data-action="teleportToBucket">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Teleport to Bucket</span>
+                                <span class="button-description">Teleport a player to a specific dimension</span>
+                            </div>
+                        </button>
+
+                        <!-- Spectate Player Button -->
+                        <button class="menu-button" id="spectate-player-btn" data-action="spectatePlayer">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Spectate Player</span>
+                                <span class="button-description">Spectate a player in your current bucket</span>
+                            </div>
+                        </button>
+
+                        <!-- Edit Scoreboard Button -->
+                        <button class="menu-button" id="edit-scoreboard-btn" data-action="editScoreboard">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M18.5 2.5C18.8978 2.10217 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10217 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Edit Scoreboard</span>
+                                <span class="button-description">Edit scoreboard settings for current bucket</span>
+                            </div>
+                        </button>
+
+                        <!-- Adjust Score Button (Sub-button) -->
+                        <button class="menu-button sub-button" id="adjust-score-btn" data-action="adjustScore">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M12 8L16 14H8L12 8Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Adjust Score</span>
+                                <span class="button-description">Set scores for each team</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Bucket Actions Section (Only visible when in a bucket with permissions) -->
+                    <div class="bucket-actions-section hidden" id="bucket-actions-section">
+                        <div class="section-divider">
+                            <span>Bucket Actions</span>
+                        </div>
+
+                        <!-- Give Ammo Button -->
+                        <button class="menu-button" id="give-ammo-btn" data-action="giveAmmo">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Give Ammo</span>
+                                <span class="button-description">Give 220 rounds of ammo to all players in bucket</span>
+                            </div>
+                        </button>
+
+                        <!-- Repair Weapons Button -->
+                        <button class="menu-button" id="repair-weapons-btn" data-action="repairWeapons">
+                            <div class="button-icon">
+                                <svg width="24px" height="24px" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M21.71,15.58l-4.52-4.51a6.85,6.85,0,0,0,.14-1.4A7.67,7.67,0,0,0,6.42,2.72a1,1,0,0,0-.57.74,1,1,0,0,0,.28.88l4.35,4.34-1.8,1.8L4.34,6.13a1,1,0,0,0-.88-.27,1,1,0,0,0-.74.56,7.67,7.67,0,0,0,7,10.91,6.85,6.85,0,0,0,1.4-.14l4.51,4.52a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42l-4.9-4.9a1,1,0,0,0-.95-.26,5.88,5.88,0,0,1-1.48.2A5.67,5.67,0,0,1,4,9.67a6,6,0,0,1,.08-1L8,12.6a1,1,0,0,0,1.42,0L12.6,9.39A1,1,0,0,0,12.6,8L8.71,4.08a6.12,6.12,0,0,1,1-.08,5.67,5.67,0,0,1,5.66,5.67,5.88,5.88,0,0,1-.2,1.48,1,1,0,0,0,.26.95l4.9,4.9a1,1,0,0,0,1.42-1.42Z"/></svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Repair Weapons</span>
+                                <span class="button-description">Repair all weapons to 100% durability for all players in bucket</span>
+                            </div>
+                        </button>
+
+                        <!-- Revive Players Button -->
+                        <button class="menu-button" id="revive-players-btn" data-action="revivePlayers">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="-2 -2 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M11 18h2a1 1 0 0 0 1-1v-2.07l1.065-.563A5.5 5.5 0 0 0 18 9.5v-2A5.5 5.5 0 0 0 12.5 2h-5A5.5 5.5 0 0 0 2 7.5v2a5.5 5.5 0 0 0 2.935 4.867L6 14.93V17a1 1 0 0 0 1 1h2v-2a1 1 0 0 1 2 0zm5-1a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-.865A7.5 7.5 0 0 1 0 9.5v-2A7.5 7.5 0 0 1 7.5 0h5A7.5 7.5 0 0 1 20 7.5v2a7.5 7.5 0 0 1-4 6.635zM6 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4m8 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4"/>
+                                  </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Revive Players</span>
+                                <span class="button-description">Revive all players with 100 HP and 100 armor in bucket</span>
+                            </div>
+                        </button>
+
+                        <!-- Move Bucket Button -->
+                        <button class="menu-button" id="move-bucket-btn" data-action="moveBucket">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">Move Bucket</span>
+                                <span class="button-description">Move bucket location to your current position</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Kill Log Section (Available to all users in a bucket) -->
+                    <div class="kill-log-section hidden" id="kill-log-section">
+                        <div class="section-divider">
+                            <span>Kill Log</span>
+                        </div>
+
+                        <!-- View Kill Log Button -->
+                        <button class="menu-button" id="view-kill-log-btn" data-action="viewKillLog">
+                            <div class="button-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div class="button-content">
+                                <span class="button-title">View Kill Log</span>
+                                <span class="button-description">View all player kills in this bucket</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal for Create Bucket -->
+                <div class="modal hidden" id="create-bucket-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Create Bucket</h3>
+                            <button class="modal-close" id="create-bucket-close">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="create-bucket-id">Bucket ID:</label>
+                            <input type="number" id="create-bucket-id" min="1" placeholder="Enter bucket ID">
+                            <p class="modal-hint">Enter a unique bucket ID (cannot be 0)</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-button cancel" id="create-bucket-cancel">Cancel</button>
+                            <button class="modal-button confirm" id="create-bucket-confirm">Create</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal for Delete Bucket -->
+                <div class="modal hidden" id="delete-bucket-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Delete Bucket</h3>
+                            <button class="modal-close" id="delete-bucket-close">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="delete-bucket-id">Select Bucket:</label>
+                            <div class="custom-dropdown" id="delete-bucket-dropdown">
+                                <div class="dropdown-selected" id="delete-bucket-selected">
+                                    <span class="dropdown-text">Select a bucket...</span>
+                                    <svg class="dropdown-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div class="dropdown-options hidden" id="delete-bucket-options"></div>
+                                <input type="hidden" id="delete-bucket-id" value="">
+                            </div>
+                            <p class="modal-hint">All players in this bucket will be moved to the main dimension</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-button cancel" id="delete-bucket-cancel">Cancel</button>
+                            <button class="modal-button confirm" id="delete-bucket-confirm">Delete</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal for Teleport to Bucket -->
+                <div class="modal hidden" id="teleport-bucket-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Teleport to Bucket</h3>
+                            <button class="modal-close" id="teleport-bucket-close">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="teleport-player-id">Select Player:</label>
+                            <div class="custom-dropdown searchable-dropdown" id="teleport-player-dropdown">
+                                <div class="dropdown-selected" id="teleport-player-selected">
+                                    <input type="text" class="dropdown-search-input" id="teleport-player-search" placeholder="Type to search..." autocomplete="off">
+                                    <svg class="dropdown-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div class="dropdown-options hidden" id="teleport-player-options"></div>
+                                <input type="hidden" id="teleport-player-id" value="">
+                            </div>
+                            <label for="teleport-bucket-id">Select Bucket:</label>
+                            <div class="custom-dropdown" id="teleport-bucket-dropdown">
+                                <div class="dropdown-selected" id="teleport-bucket-selected">
+                                    <span class="dropdown-text">Main Dimension (0)</span>
+                                    <svg class="dropdown-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div class="dropdown-options hidden" id="teleport-bucket-options"></div>
+                                <input type="hidden" id="teleport-bucket-id" value="0">
+                            </div>
+                            <p class="modal-hint">Teleport the selected player to the chosen dimension</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-button cancel" id="teleport-bucket-cancel">Cancel</button>
+                            <button class="modal-button confirm" id="teleport-bucket-confirm">Teleport</button>
+                        </div>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal for Edit Scoreboard -->
+                <div class="modal hidden" id="edit-scoreboard-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Edit Scoreboard</h3>
+                            <button class="modal-close" id="edit-scoreboard-close">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="team1-name">Team 1 Name:</label>
+                            <input type="text" id="team1-name" placeholder="Enter Team 1 name" maxlength="20">
+                            
+                            <label for="team2-name">Team 2 Name:</label>
+                            <input type="text" id="team2-name" placeholder="Enter Team 2 name" maxlength="20">
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="scoreboard-visible" class="checkbox-input">
+                                <span class="checkbox-custom">
+                                    <svg class="checkbox-checkmark" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11.6667 3.5L5.25 9.91667L2.33334 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                <span>Display Scoreboard</span>
+                            </label>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-button cancel" id="edit-scoreboard-cancel">Cancel</button>
+                            <button class="modal-button confirm" id="edit-scoreboard-confirm">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal for Adjust Score -->
+                <div class="modal hidden" id="adjust-score-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Adjust Score</h3>
+                            <button class="modal-close" id="adjust-score-close">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="adjust-team">Select Team:</label>
+                            <div class="custom-dropdown" id="adjust-team-dropdown">
+                                <div class="dropdown-selected" id="adjust-team-selected">
+                                    <span class="dropdown-text">Select a team...</span>
+                                    <svg class="dropdown-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div class="dropdown-options hidden" id="adjust-team-options"></div>
+                                <input type="hidden" id="adjust-team-id" value="">
+                            </div>
+                            
+                            <label for="adjust-score-value">Score:</label>
+                            <input type="number" id="adjust-score-value" min="0" placeholder="Enter score">
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-button cancel" id="adjust-score-cancel">Cancel</button>
+                            <button class="modal-button confirm" id="adjust-score-confirm">Set Score</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal for Kill Log -->
+                <div class="modal hidden" id="kill-log-modal">
+                    <div class="modal-content kill-log-modal-content">
+                        <div class="modal-header">
+                            <h3>Kill Log</h3>
+                            <button class="modal-close" id="kill-log-close">×</button>
+                        </div>
+                        <div class="modal-body kill-log-body">
+                            <div id="kill-log-container" class="kill-log-container">
+                                <div class="kill-log-loading">Loading kill log...</div>
+                            </div>
+                            <div class="kill-log-pagination" id="kill-log-pagination">
+                                <button class="pagination-button" id="kill-log-prev" disabled>Previous</button>
+                                <span class="pagination-info" id="kill-log-page-info">Page 1 of 1</span>
+                                <button class="pagination-button" id="kill-log-next" disabled>Next</button>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="modal-button confirm" id="kill-log-close-btn">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+    <!-- Scoreboard Overlay -->
+    <div id="scoreboard-overlay" class="scoreboard-overlay hidden">
+        <div class="scoreboard-container">
+            <div class="scoreboard-team">
+                <div class="scoreboard-team-name" id="scoreboard-team1-name">Team 1</div>
+                <div class="scoreboard-team-score" id="scoreboard-team1-score">0</div>
+            </div>
+            <div class="scoreboard-vs">VS</div>
+            <div class="scoreboard-team">
+                <div class="scoreboard-team-name" id="scoreboard-team2-name">Team 2</div>
+                <div class="scoreboard-team-score" id="scoreboard-team2-score">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spectate Overlay -->
+    <div id="spectate-overlay" class="spectate-overlay hidden">
+        <div class="spectate-info">
+            <div class="spectate-player-name" id="spectate-player-name">Spectating: Unknown</div>
+            <div class="spectate-controls">
+                <span class="spectate-control-item">←: Prev Player</span>
+                <span class="spectate-control-item">→: Next Player</span>
+            </div>
+            <div class="spectate-controls-secondary">
+                <span class="spectate-control-item">Scroll Up: Increase FOV & Distance</span>
+                <span class="spectate-control-item">Scroll Down: Decrease FOV & Distance</span>
+            </div>
+            <div class="spectate-toggle">Press 'G' to toggle names</div>
+            <div class="spectate-exit">Press 'Backspace' to stop spectating</div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
+
