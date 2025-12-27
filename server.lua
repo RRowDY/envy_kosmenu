@@ -129,6 +129,34 @@ QBCore.Functions.CreateCallback('envy_kosmenu:getScoreboard', function(source, c
     end
 end)
 
+-- Get player metadata (death status) for multiple players
+QBCore.Functions.CreateCallback('envy_kosmenu:getPlayerMetadata', function(source, cb, playerIds)
+    local metadataTable = {}
+    
+    if not playerIds or type(playerIds) ~= 'table' then
+        cb(metadataTable)
+        return
+    end
+    
+    for _, playerId in ipairs(playerIds) do
+        local player = QBCore.Functions.GetPlayer(playerId)
+        if player then
+            metadataTable[playerId] = {
+                isDead = player.PlayerData.metadata['isdead'] == true,
+                inLaststand = player.PlayerData.metadata['inlaststand'] == true
+            }
+        else
+            -- Default to false if player not found
+            metadataTable[playerId] = {
+                isDead = false,
+                inLaststand = false
+            }
+        end
+    end
+    
+    cb(metadataTable)
+end)
+
 -- Get kill log for current bucket
 QBCore.Functions.CreateCallback('envy_kosmenu:getKillLog', function(source, cb, page)
     local bucketId = GetPlayerRoutingBucket(source)

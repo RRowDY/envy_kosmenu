@@ -392,6 +392,30 @@ local cameraRotationSpeed = 3.0 -- Camera rotation speed
 local cameraYaw = 0.0 -- Horizontal rotation (around Y axis)
 local cameraPitch = -10.0 -- Vertical rotation (pitch angle)
 
+-- Function to refresh player metadata (death status)
+local function RefreshPlayerMetadata()
+    if not isSpectating or #spectatePlayerList == 0 then return end
+    
+    local playerIds = {}
+    for _, player in ipairs(spectatePlayerList) do
+        table.insert(playerIds, player.id)
+    end
+    
+    QBCore.Functions.TriggerCallback('envy_kosmenu:getPlayerMetadata', function(metadataTable)
+        if not metadataTable then return end
+        for _, player in ipairs(spectatePlayerList) do
+            if metadataTable[player.id] then
+                player.isDead = metadataTable[player.id].isDead == true
+                player.inLaststand = metadataTable[player.id].inLaststand == true
+            else
+                -- Default to false if player not found
+                player.isDead = false
+                player.inLaststand = false
+            end
+        end
+    end, playerIds)
+end
+
 -- Start spectating
 RegisterNetEvent('envy_kosmenu:client:StartSpectate', function(targetPlayerId, targetName, bucketId)
     local myPed = PlayerPedId()
@@ -403,19 +427,19 @@ RegisterNetEvent('envy_kosmenu:client:StartSpectate', function(targetPlayerId, t
     end
     
     local target = GetPlayerPed(targetplayer)
+    local targetCoords = GetEntityCoords(target)
+    local targetHeading = GetEntityHeading(target)
     
     if not isSpectating then
         -- First time spectating - save position and setup
         isSpectating = true
         lastSpectateCoord = GetEntityCoords(myPed)
-        SetEntityVisible(myPed, false)
+        SetEntityVisible(myPed, false, false)
         SetEntityCollision(myPed, false, false)
         SetEntityInvincible(myPed, true)
         NetworkSetEntityInvisibleToNetwork(myPed, true)
         
         -- Create custom camera that orbits around target player
-        local targetCoords = GetEntityCoords(target)
-        local targetHeading = GetEntityHeading(target)
         spectateCamera = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
         
         -- Initialize camera angles
@@ -438,8 +462,6 @@ RegisterNetEvent('envy_kosmenu:client:StartSpectate', function(targetPlayerId, t
     else
         -- Already spectating - switch target
         -- Reset camera angles to face new target
-        local targetCoords = GetEntityCoords(target)
-        local targetHeading = GetEntityHeading(target)
         cameraYaw = targetHeading
         cameraPitch = -10.0
         -- Reset FOV and distance to defaults when switching targets
@@ -447,13 +469,40 @@ RegisterNetEvent('envy_kosmenu:client:StartSpectate', function(targetPlayerId, t
         cameraDistance = defaultDistance
     end
     
+    -- Position spectator below target player (once per switch)
+    local belowCoords = GetOffsetFromEntityInWorldCoords(target, 0.0, 0.0, -15.0)
+    SetEntityCoords(myPed, belowCoords.x, belowCoords.y, belowCoords.z, false, false, false, true)
+    FreezeEntityPosition(myPed, true)
+
     currentSpectatePlayerId = targetPlayerId
     currentSpectatePlayerName = targetName
     currentSpectateBucket = bucketId
     
     -- Get players in bucket for cycling
     QBCore.Functions.TriggerCallback('envy_kosmenu:getBucketPlayers', function(players)
+        -- Preserve existing metadata for players that are still in the list
+        local oldMetadata = {}
+        for _, oldPlayer in ipairs(spectatePlayerList) do
+            oldMetadata[oldPlayer.id] = {
+                isDead = oldPlayer.isDead or false,
+                inLaststand = oldPlayer.inLaststand or false
+            }
+        end
+        
         spectatePlayerList = players
+        
+        -- Initialize metadata fields, preserving existing data if available
+        for _, player in ipairs(spectatePlayerList) do
+            if oldMetadata[player.id] then
+                -- Preserve existing metadata
+                player.isDead = oldMetadata[player.id].isDead
+                player.inLaststand = oldMetadata[player.id].inLaststand
+            else
+                -- New player, initialize to false
+                player.isDead = false
+                player.inLaststand = false
+            end
+        end
         
         -- Find current player index
         currentSpectateIndex = 1
@@ -469,6 +518,9 @@ RegisterNetEvent('envy_kosmenu:client:StartSpectate', function(targetPlayerId, t
             action = 'showSpectate',
             playerName = currentSpectatePlayerName
         })
+        
+        -- Fetch initial metadata immediately after list is populated (no delay)
+        RefreshPlayerMetadata()
     end)
 end)
 
@@ -492,8 +544,9 @@ RegisterNetEvent('envy_kosmenu:client:StopSpectate', function()
             SetEntityCoords(myPed, lastSpectateCoord.x, lastSpectateCoord.y, lastSpectateCoord.z, false, false, false, true)
         end
         
-        SetEntityVisible(myPed, true)
+        SetEntityVisible(myPed, true, false)
         SetEntityInvincible(myPed, false)
+        FreezeEntityPosition(myPed, false)
     end
     
     isSpectating = false
@@ -521,7 +574,7 @@ CreateThread(function()
         Wait(0)
         if isSpectating then
             -- Left arrow key - Previous player
-            if IsControlJustPressed(0, 174) then -- LEFT ARROW
+            if IsDisabledControlJustPressed(0, 174) then -- LEFT ARROW
                 if #spectatePlayerList > 0 then
                     currentSpectateIndex = currentSpectateIndex - 1
                     if currentSpectateIndex < 1 then
@@ -536,7 +589,7 @@ CreateThread(function()
             end
             
             -- Right arrow key - Next player
-            if IsControlJustPressed(0, 175) then -- RIGHT ARROW
+            if IsDisabledControlJustPressed(0, 175) then -- RIGHT ARROW
                 if #spectatePlayerList > 0 then
                     currentSpectateIndex = currentSpectateIndex + 1
                     if currentSpectateIndex > #spectatePlayerList then
@@ -551,19 +604,23 @@ CreateThread(function()
             end
             
             -- G key - Toggle ESP
-            if IsControlJustPressed(0, 47) then -- G KEY
+            if IsDisabledControlJustPressed(0, 47) then -- G KEY
                 showESP = not showESP
+                if showESP then
+                    -- Refresh metadata when ESP is turned on
+                    RefreshPlayerMetadata()
+                end
             end
             
             -- Backspace key - Stop spectating
-            if IsControlJustPressed(0, 194) then -- BACKSPACE KEY
+            if IsDisabledControlJustPressed(0, 194) then -- BACKSPACE KEY
                 TriggerServerEvent('envy_kosmenu:stopSpectate')
             end
             
             -- Mouse scroll for FOV and distance control (same bindings)
             -- Control 241 = Mouse wheel up, Control 242 = Mouse wheel down
             -- Both FOV and distance adjust simultaneously with ±2 max change from default
-            if IsControlJustPressed(0, 241) then -- Mouse wheel up - increase both
+            if IsDisabledControlJustPressed(0, 241) then -- Mouse wheel up - increase both
                 -- Increase FOV (max +2 from default)
                 spectateFOV = math.min(spectateFOV + 0.5, defaultFOV + 2.0)
                 if spectateCamera and DoesCamExist(spectateCamera) then
@@ -571,7 +628,7 @@ CreateThread(function()
                 end
                 -- Increase distance (max +2 from default)
                 cameraDistance = math.min(cameraDistance + 0.5, defaultDistance + 2.0)
-            elseif IsControlJustPressed(0, 242) then -- Mouse wheel down - decrease both
+            elseif IsDisabledControlJustPressed(0, 242) then -- Mouse wheel down - decrease both
                 -- Decrease FOV (min -2 from default)
                 spectateFOV = math.max(spectateFOV - 0.5, defaultFOV - 2.0)
                 if spectateCamera and DoesCamExist(spectateCamera) then
@@ -627,16 +684,10 @@ CreateThread(function()
                     -- Update FOV (applied continuously)
                     SetCamFov(spectateCamera, spectateFOV)
                     
-                    -- Disable player movement controls while spectating
-                    DisableControlAction(0, 30, true) -- A/D
-                    DisableControlAction(0, 31, true) -- W/S
-                    DisableControlAction(0, 32, true) -- W
-                    DisableControlAction(0, 33, true) -- S
-                    DisableControlAction(0, 34, true) -- A
-                    DisableControlAction(0, 35, true) -- D
-                    DisableControlAction(0, 21, true) -- Shift
-                    DisableControlAction(0, 22, true) -- Space
-                    DisableControlAction(0, 36, true) -- Ctrl
+                    -- Disable ALL controls while spectating
+                    for i = 0, 350 do
+                        DisableControlAction(0, i, true)
+                    end
                     
                     -- Hide HUD elements for cleaner spectate view
                     HideHudAndRadarThisFrame()
@@ -654,9 +705,17 @@ end)
 
 -- ESP Drawing Thread
 CreateThread(function()
+    local lastMetadataRefresh = 0
     while true do
         Wait(0)
         if isSpectating and showESP then
+            local currentTime = GetGameTimer()
+            -- Refresh metadata every 500ms while ESP is active
+            if currentTime - lastMetadataRefresh > 500 then
+                RefreshPlayerMetadata()
+                lastMetadataRefresh = currentTime
+            end
+            
             local myPed = PlayerPedId()
             local myServerId = GetPlayerServerId(PlayerId())
             
@@ -670,18 +729,14 @@ CreateThread(function()
                         local onScreen, x, y = GetScreenCoordFromWorldCoord(coords.x, coords.y, coords.z + 1.0)
                         
                         if onScreen then
-                            -- Get player info
-                            -- In FiveM, GetEntityHealth returns 0-200 (100 is base health, 200 is max health)
-                            local health = GetEntityHealth(targetPed)
-                            -- Max health in FiveM is always 200 for players
-                            local maxHealth = 200
-                            -- Calculate health percentage (0-100%)
-                            -- Health of 100 = 50%, health of 200 = 100%
-                            local healthPercent = math.floor((health / maxHealth) * 100)
-                            -- Clamp to 0-100 range
-                            if healthPercent < 0 then healthPercent = 0 end
-                            if healthPercent > 100 then healthPercent = 100 end
+                            local rawHealth = GetEntityHealth(targetPed)
+                            local health = math.max(0, math.min(100, math.floor(((rawHealth - 100) / 100) * 100)))
                             local armor = GetPedArmour(targetPed)
+                            
+                            -- Check if player is dead or in laststand using QBCore metadata
+                            local isDead = playerData.isDead == true
+                            local inLaststand = playerData.inLaststand == true
+                            local healthColor = (isDead or inLaststand) and '~r~' or '~g~' -- Red if dead or in laststand, green if alive
                             
                             -- Get weapon info
                             local weaponHash = GetSelectedPedWeapon(targetPed)
@@ -712,9 +767,10 @@ CreateThread(function()
                             end
                             
                             -- Draw ESP info above player (compact format)
-                            local espText = string.format('~b~%s~w~~n~HP: ~g~%d%%~w~ | Armor: ~b~%d%%~w~ ~n~%s | Ammo: ~y~%d~w~', 
+                            local espText = string.format('~b~%s~w~~n~HP: %s%d%%~w~ | Armor: ~b~%d%%~w~ ~n~%s | Ammo: ~y~%d~w~', 
                                 playerData.name, 
-                                healthPercent, 
+                                healthColor,
+                                health, 
                                 math.floor(armor), 
                                 weaponName, 
                                 ammo
@@ -734,15 +790,12 @@ end)
 function DrawText3D(x, y, z, text)
     local onScreen, _x, _y = World3dToScreen2d(x, y, z)
     local camCoords = GetGameplayCamCoord()
-    local distance = #(camCoords - vector3(x, y, z))
     
-    local scale = (1 / distance) * 2
     local fov = (1 / GetGameplayCamFov()) * 100
-    scale = scale * fov
     
     if onScreen then
         -- Increased scale (doubled from 0.32 to 0.64 for better visibility with custom camera)
-        SetTextScale(0.0, 0.40 * scale)
+        SetTextScale(0.0, 0.30 * fov)
         SetTextFont(4)
         SetTextProportional(1)
         SetTextColour(255, 255, 255, 255)
@@ -770,7 +823,7 @@ CreateThread(function()
             end
         elseif isSpectating then
             -- ESC to stop spectating (backup, but Backspace is primary)
-            if IsControlJustPressed(0, 194) then -- ESC Key
+            if IsDisabledControlJustPressed(0, 194) then -- ESC Key
                 TriggerServerEvent('envy_kosmenu:stopSpectate')
             end
         else
