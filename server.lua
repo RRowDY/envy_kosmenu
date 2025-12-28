@@ -5,6 +5,10 @@ local Buckets = {} -- Format: [bucketId] = { position = vector3(x, y, z), scoreb
 -- Scoreboard format: { team1Name = "Team 1", team2Name = "Team 2", team1Score = 0, team2Score = 0, visible = false }
 -- Kill log format: { timestamp = os.time(), killerId = playerId, killerName = "Name", killedId = playerId, killedName = "Name", weapon = "WEAPON_NAME" }
 
+-- Weapon state storage for bucket restoration
+-- Format: [bucketId][playerId] = { weapons = { [serial] = { quality = number, ammo = number (optional), slot = number } } }
+local WeaponStates = {}
+
 -- Helper function to check if bucket exists
 local function BucketExists(bucketId)
     return Buckets[bucketId] ~= nil
@@ -51,6 +55,198 @@ local function GetPlayersInBucket(bucketId)
         end
     end
     return players
+end
+
+-- Helper function to get all weapons from a player's inventory
+local function GetPlayerWeapons(playerId)
+    local player = QBCore.Functions.GetPlayer(playerId)
+    if not player then return {} end
+    
+    local weapons = {}
+    local weaponCount = 0
+    local weaponCountNoSerial = 0
+    
+    for slot, item in pairs(player.PlayerData.items) do
+        if item and item.name and string.find(item.name, '^weapon_') then
+            weaponCount = weaponCount + 1
+            -- Check if weapon has a serial number
+            if item.info and item.info.serie then
+                weapons[#weapons + 1] = {
+                    slot = slot,
+                    name = item.name,
+                    serial = item.info.serie,
+                    quality = item.info.quality,
+                    ammo = item.info.ammo
+                }
+            else
+                weaponCountNoSerial = weaponCountNoSerial + 1
+            end
+        end
+    end
+    
+    if weaponCount > 0 then
+        print(string.format("[envy_kosmenu] GetPlayerWeapons: Found %d total weapon(s), %d with serial, %d without serial for player %d", 
+            weaponCount, #weapons, weaponCountNoSerial, playerId))
+    end
+    
+    return weapons
+end
+
+-- Helper function to store original weapon states for a player in a bucket
+local function StoreWeaponStates(playerId, bucketId)
+    if not WeaponStates[bucketId] then
+        WeaponStates[bucketId] = {}
+    end
+    
+    local weapons = GetPlayerWeapons(playerId)
+    if #weapons == 0 then
+        return -- No weapons to store
+    end
+    
+    -- Check if player already has stored weapon states in this bucket
+    local existingStates = WeaponStates[bucketId][playerId]
+    
+    if existingStates and existingStates.weapons then
+        -- Player already has stored states - preserve existing ones, only add new weapons
+        local weaponStates = existingStates.weapons -- Work with existing table
+        
+        for _, weapon in ipairs(weapons) do
+            -- Only add if this serial number doesn't already exist
+            if not weaponStates[weapon.serial] then
+                weaponStates[weapon.serial] = {
+                    quality = weapon.quality,
+                    ammo = weapon.ammo, -- Can be nil if weapon doesn't have ammo
+                    slot = weapon.slot
+                }
+                print(string.format("[envy_kosmenu] Added new weapon state for serial %s (player %d, bucket %d)", 
+                    weapon.serial, playerId, bucketId))
+            else
+                print(string.format("[envy_kosmenu] Preserved existing weapon state for serial %s (player %d, bucket %d)", 
+                    weapon.serial, playerId, bucketId))
+            end
+        end
+        
+        -- Count weapons
+        local weaponCount = 0
+        for _ in pairs(weaponStates) do
+            weaponCount = weaponCount + 1
+        end
+        
+        print(string.format("[envy_kosmenu] Updated weapon states (preserved existing, added new) - %d total for player %d in bucket %d", 
+            weaponCount, playerId, bucketId))
+    else
+        -- No existing states - create new stored states (player entering bucket for first time or re-entering)
+        local weaponStates = {}
+        
+        for _, weapon in ipairs(weapons) do
+            weaponStates[weapon.serial] = {
+                quality = weapon.quality,
+                ammo = weapon.ammo, -- Can be nil if weapon doesn't have ammo
+                slot = weapon.slot
+            }
+        end
+        
+        -- Store the weapon states
+        local weaponCount = 0
+        for _ in pairs(weaponStates) do
+            weaponCount = weaponCount + 1
+        end
+        
+        if weaponCount > 0 then
+            WeaponStates[bucketId][playerId] = {
+                weapons = weaponStates
+            }
+            print(string.format("[envy_kosmenu] Stored %d weapon state(s) for player %d in bucket %d", 
+                weaponCount, playerId, bucketId))
+        end
+    end
+end
+
+-- Helper function to restore weapon states for a player
+local function RestoreWeaponStates(playerId, bucketId)
+    print(string.format("[envy_kosmenu] RestoreWeaponStates called for player %d in bucket %d", playerId, bucketId))
+    
+    if not WeaponStates[bucketId] or not WeaponStates[bucketId][playerId] then
+        print(string.format("[envy_kosmenu] No weapon states found for player %d in bucket %d", playerId, bucketId))
+        return
+    end
+    
+    local player = QBCore.Functions.GetPlayer(playerId)
+    if not player then 
+        -- Clear state if player doesn't exist
+        WeaponStates[bucketId][playerId] = nil
+        return 
+    end
+    
+    local storedStates = WeaponStates[bucketId][playerId].weapons
+    if not storedStates or next(storedStates) == nil then
+        -- Clear empty state
+        WeaponStates[bucketId][playerId] = nil
+        return
+    end
+    
+    local restored = false
+    local restoredCount = 0
+    
+    -- Iterate through stored states and find matching weapons in inventory
+    for serial, storedState in pairs(storedStates) do
+        -- Find weapon with matching serial number in player's inventory
+        local foundWeapon = false
+        for slot, item in pairs(player.PlayerData.items) do
+            if item and item.name and string.find(item.name, '^weapon_') then
+                if item.info and item.info.serie and item.info.serie == serial then
+                    -- Found matching weapon, restore its state directly by slot
+                    local weaponSlot = player.PlayerData.items[slot]
+                    if weaponSlot then
+                        local weaponRestored = false
+                        
+                        -- Restore quality if it exists
+                        if storedState.quality ~= nil then
+                            if not weaponSlot.info.quality or weaponSlot.info.quality ~= storedState.quality then
+                                weaponSlot.info.quality = storedState.quality
+                                weaponRestored = true
+                                restored = true
+                            end
+                        end
+                        
+                        -- Restore ammo if it was originally stored (not nil)
+                        if storedState.ammo ~= nil then
+                            if not weaponSlot.info.ammo or weaponSlot.info.ammo ~= storedState.ammo then
+                                weaponSlot.info.ammo = storedState.ammo
+                                weaponRestored = true
+                                restored = true
+                            end
+                        end
+                        
+                        if weaponRestored then
+                            restoredCount = restoredCount + 1
+                        end
+                    end
+                    
+                    foundWeapon = true
+                    break -- Found the weapon, move to next stored state
+                end
+            end
+        end
+        
+        if not foundWeapon then
+            print(string.format("[envy_kosmenu] Warning: Could not find weapon with serial %s for player %d in bucket %d", serial, playerId, bucketId))
+        end
+    end
+    
+    -- Update inventory if changes were made
+    if restored then
+        player.Functions.SetInventory(player.PlayerData.items, true)
+        print(string.format("[envy_kosmenu] Restored %d weapon(s) for player %d in bucket %d", restoredCount, playerId, bucketId))
+    end
+    
+    -- Clear stored state after restoration
+    WeaponStates[bucketId][playerId] = nil
+    
+    -- Clean up empty bucket entries
+    if WeaponStates[bucketId] and next(WeaponStates[bucketId]) == nil then
+        WeaponStates[bucketId] = nil
+    end
 end
 
 -- Get current bucket of player
@@ -325,6 +521,16 @@ RegisterNetEvent('envy_kosmenu:deleteBucket', function(bucketId)
     -- Get all players in the bucket
     local playersInBucket = GetPlayersInBucket(bucketId)
     
+    -- Unequip weapons for all players first (make them unarmed)
+    for _, playerId in ipairs(playersInBucket) do
+        TriggerClientEvent('envy_kosmenu:client:UnequipWeapon', playerId)
+    end
+    
+    -- Restore weapon states for all players before deleting bucket
+    for _, playerId in ipairs(playersInBucket) do
+        RestoreWeaponStates(playerId, bucketId)
+    end
+    
     -- Teleport all players to default location and set to bucket 0
     for _, playerId in ipairs(playersInBucket) do
         SetPlayerRoutingBucket(playerId, 0)
@@ -336,6 +542,11 @@ RegisterNetEvent('envy_kosmenu:deleteBucket', function(bucketId)
     
     -- Delete bucket
     Buckets[bucketId] = nil
+    
+    -- Clean up weapon states for this bucket (should already be cleaned in RestoreWeaponStates, but ensure cleanup)
+    if WeaponStates[bucketId] then
+        WeaponStates[bucketId] = nil
+    end
     
     TriggerClientEvent('QBCore:Notify', src, 'Bucket ' .. bucketId .. ' deleted successfully', 'success')
     TriggerClientEvent('envy_kosmenu:client:ActionResult', src, true, 'deleteBucket', 'Bucket ' .. bucketId .. ' deleted successfully')
@@ -478,6 +689,12 @@ RegisterNetEvent('envy_kosmenu:leaveBucket', function()
         return
     end
     
+    -- Unequip weapon first (make player unarmed)
+    TriggerClientEvent('envy_kosmenu:client:UnequipWeapon', src)
+    
+    -- Restore weapon states before leaving bucket
+    RestoreWeaponStates(src, currentBucket)
+    
     -- Set to bucket 0
     SetPlayerRoutingBucket(src, 0)
     
@@ -605,6 +822,11 @@ RegisterNetEvent('envy_kosmenu:giveAmmo', function()
     -- Get all players in the bucket
     local playersInBucket = GetPlayersInBucket(currentBucket)
     
+    -- Store original weapon states before applying changes
+    for _, playerId in ipairs(playersInBucket) do
+        StoreWeaponStates(playerId, currentBucket)
+    end
+    
     -- Give ammo to all players (client-side using SetPedAmmo)
     for _, playerId in ipairs(playersInBucket) do
         TriggerClientEvent('envy_kosmenu:client:GiveAmmo', playerId)
@@ -659,10 +881,34 @@ RegisterNetEvent('envy_kosmenu:repairWeapons', function()
     -- Get all players in the bucket
     local playersInBucket = GetPlayersInBucket(currentBucket)
     
-    -- Repair weapons for all players
+    -- Store original weapon states before applying changes
     for _, playerId in ipairs(playersInBucket) do
-        TriggerClientEvent('qb-weapons:client:SetWeaponQuality', playerId, 100)
-        TriggerClientEvent('QBCore:Notify', playerId, 'All your weapons have been repaired to 100%', 'success')
+        StoreWeaponStates(playerId, currentBucket)
+    end
+    
+    -- Repair ALL weapons for all players (not just equipped weapon)
+    for _, playerId in ipairs(playersInBucket) do
+        local player = QBCore.Functions.GetPlayer(playerId)
+        if player then
+            local weaponsRepaired = 0
+            for slot, item in pairs(player.PlayerData.items) do
+                if item and item.name and string.find(item.name, '^weapon_') then
+                    -- Check if weapon has a serial number and quality
+                    if item.info and item.info.serie and item.info.quality ~= nil then
+                        -- Repair weapon to 100 quality
+                        item.info.quality = 100
+                        weaponsRepaired = weaponsRepaired + 1
+                    end
+                end
+            end
+            
+            -- Update inventory if weapons were repaired
+            if weaponsRepaired > 0 then
+                player.Functions.SetInventory(player.PlayerData.items, true)
+                -- Inventory update will automatically sync weapon quality to client
+                TriggerClientEvent('QBCore:Notify', playerId, 'All your weapons have been repaired to 100%', 'success')
+            end
+        end
     end
     
     TriggerClientEvent('QBCore:Notify', src, 'Weapons repaired for all players in bucket ' .. currentBucket, 'success')

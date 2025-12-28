@@ -243,6 +243,18 @@ RegisterNetEvent('envy_kosmenu:client:GiveAmmo', function()
     end
 end)
 
+-- Unequip weapon event (makes player unarmed)
+RegisterNetEvent('envy_kosmenu:client:UnequipWeapon', function()
+    local ped = PlayerPedId()
+    local currentWeapon = GetSelectedPedWeapon(ped)
+    
+    -- Only unequip if player has a weapon out
+    if currentWeapon and currentWeapon ~= GetHashKey('WEAPON_UNARMED') then
+        -- Set player to unarmed (this doesn't remove weapons from inventory, just unequips them)
+        SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true)
+    end
+end)
+
 -- Action result event (for NUI notifications)
 RegisterNetEvent('envy_kosmenu:client:ActionResult', function(success, action, message)
     if isMenuOpen then
