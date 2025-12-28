@@ -1242,8 +1242,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.remove('loading');
                 this.disabled = false;
             });
-            
-            closeModal('teleport-bucket-modal');
         });
     }
     
