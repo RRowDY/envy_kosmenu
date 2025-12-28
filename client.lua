@@ -229,18 +229,28 @@ RegisterNetEvent('envy_kosmenu:client:SetArmor', function(armor)
     SetPedArmour(ped, armor)
 end)
 
--- Give ammo event (uses SetPedAmmo for current weapon)
-RegisterNetEvent('envy_kosmenu:client:GiveAmmo', function()
+-- Give ammo event (sets PED ammo for equipped weapon if it was updated)
+RegisterNetEvent('envy_kosmenu:client:GiveAmmo', function(updatedWeaponHashes)
     local ped = PlayerPedId()
-    local weapon = GetSelectedPedWeapon(ped)
+    local currentWeapon = GetSelectedPedWeapon(ped)
+    local pedAmmoSet = false
     
-    -- Only set ammo if player has a weapon out
-    if weapon and weapon ~= GetHashKey('WEAPON_UNARMED') then
-        SetPedAmmo(ped, weapon, 250)
-        QBCore.Functions.Notify('Ammo set to 250 for your current weapon', 'success')
-    else
-        QBCore.Functions.Notify('You must have a weapon out to receive ammo', 'error')
+    -- Check if currently equipped weapon is in the list of updated weapons
+    if currentWeapon and currentWeapon ~= GetHashKey('WEAPON_UNARMED') then
+        if updatedWeaponHashes then
+            for _, weaponHash in ipairs(updatedWeaponHashes) do
+                if currentWeapon == weaponHash then
+                    -- Weapon is equipped and was updated, set PED ammo
+                    SetPedAmmo(ped, currentWeapon, 250)
+                    pedAmmoSet = true
+                    break
+                end
+            end
+        end
     end
+    
+    -- Notify that ammo was given (inventory ammo was updated for all weapons, PED ammo set if weapon was equipped)
+    QBCore.Functions.Notify('Ammo set to 250 for all your weapons', 'success')
 end)
 
 -- Unequip weapon event (makes player unarmed)

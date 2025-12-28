@@ -827,9 +827,43 @@ RegisterNetEvent('envy_kosmenu:giveAmmo', function()
         StoreWeaponStates(playerId, currentBucket)
     end
     
-    -- Give ammo to all players (client-side using SetPedAmmo)
+    -- Give ammo to all players (update inventory ammo data and set PED ammo for equipped weapons)
     for _, playerId in ipairs(playersInBucket) do
-        TriggerClientEvent('envy_kosmenu:client:GiveAmmo', playerId)
+        local player = QBCore.Functions.GetPlayer(playerId)
+        if player then
+            local weaponsUpdated = 0
+            local updatedWeaponHashes = {}
+            
+            -- Iterate through all items in player's inventory
+            for slot, item in pairs(player.PlayerData.items) do
+                if item and item.name and string.find(item.name, '^weapon_') then
+                    -- Check if weapon has a serial number
+                    if item.info and item.info.serie then
+                        -- Check if weapon has ammo data (skip if it doesn't)
+                        if item.info.ammo ~= nil then
+                            -- Update ammo to 250
+                            item.info.ammo = 250
+                            weaponsUpdated = weaponsUpdated + 1
+                            
+                            -- Get weapon hash for client-side equipped weapon check
+                            -- Convert weapon item name (e.g., "weapon_pistol") to hash format (e.g., "WEAPON_PISTOL")
+                            local weaponHash = GetHashKey(string.upper(item.name))
+                            if weaponHash and weaponHash ~= 0 then
+                                updatedWeaponHashes[#updatedWeaponHashes + 1] = weaponHash
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- Update inventory if weapons were updated
+            if weaponsUpdated > 0 then
+                player.Functions.SetInventory(player.PlayerData.items, true)
+            end
+            
+            -- Send to client to also set PED ammo for equipped weapons
+            TriggerClientEvent('envy_kosmenu:client:GiveAmmo', playerId, updatedWeaponHashes)
+        end
     end
     
     TriggerClientEvent('QBCore:Notify', src, 'Ammo given to all players in bucket ' .. currentBucket, 'success')
